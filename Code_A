@@ -1,0 +1,142 @@
+import java.util.*;
+
+class Edge {
+    String source;
+    String destination;
+
+    Edge(String source, String destination) {
+        this.source = source;
+        this.destination = destination;
+    }
+}
+
+public class ArticulationPointFinder {
+
+    private int time = 0; // To keep track of discovery times of visited vertices
+
+    public static void main(String[] args) {
+        // Define the number of unique areas (nodes)
+        int numNodes = 6; // Adjust based on the actual number of unique areas
+
+        // Step 1: Create an array of ArrayLists for the graph
+        ArrayList<Edge>[] graph = new ArrayList[numNodes];
+
+        // Step 2: Initialize each ArrayList in the array
+        for (int i = 0; i < numNodes; i++) {
+            graph[i] = new ArrayList<>();
+        }
+
+        // Step 4: Manually add edges to the graph
+        graph[0].add(new Edge("Banjara Hills", "Jubilee Hills"));
+        graph[0].add(new Edge("Banjara Hills", "Madhapur"));
+        graph[1].add(new Edge("Jubilee Hills", "Banjara Hills"));
+        graph[1].add(new Edge("Jubilee Hills", "Madhapur"));
+        graph[2].add(new Edge("Madhapur", "Banjara Hills"));
+        graph[2].add(new Edge("Madhapur", "Jubilee Hills"));
+        graph[2].add(new Edge("Madhapur", "Kondapur"));
+        graph[2].add(new Edge("Madhapur", "Hitech City"));
+        graph[3].add(new Edge("Kondapur", "Madhapur"));
+        graph[3].add(new Edge("Kondapur", "Gachibowli"));
+        graph[4].add(new Edge("Hitech City", "Madhapur"));
+        graph[4].add(new Edge("Hitech City", "Gachibowli"));
+        graph[5].add(new Edge("Gachibowli", "Kondapur"));
+        graph[5].add(new Edge("Gachibowli", "Hitech City"));
+
+        // Step 5: Convert area names to indices using a HashMap
+        Map<String, Integer> indices = new HashMap<>();
+        indices.put("Banjara Hills", 0);
+        indices.put("Jubilee Hills", 1);
+        indices.put("Madhapur", 2);
+        indices.put("Kondapur", 3);
+        indices.put("Hitech City", 4);
+        indices.put("Gachibowli", 5);
+
+        // Create an adjacency list with indices
+        ArrayList<Integer>[] adjList = new ArrayList[numNodes];
+        for (int i = 0; i < numNodes; i++) {
+            adjList[i] = new ArrayList<>();
+        }
+
+        // Populate the adjacency list with indices
+        for (int i = 0; i < graph.length; i++) {
+            for (Edge edge : graph[i]) {
+                int srcIdx = indices.get(edge.source);
+                int destIdx = indices.get(edge.destination);
+                adjList[srcIdx].add(destIdx);
+            }
+        }
+
+        // Create an instance of ArticulationPointsFinder
+        ArticulationPointFinder apf = new ArticulationPointFinder();
+
+        // Find and print articulation points
+        apf.findArticulationPoints(adjList, numNodes);
+    }
+
+    // Function to find and print articulation points using DFS
+    public void findArticulationPoints(ArrayList<Integer>[] adjList, int numNodes) {
+        boolean[] visited = new boolean[numNodes];
+        int[] discovery = new int[numNodes];
+        int[] low = new int[numNodes];
+        int[] parent = new int[numNodes];
+        boolean[] articulationPoint = new boolean[numNodes]; // To store articulation points
+
+        // Initialize parent and visited arrays
+        Arrays.fill(parent, -1);
+        Arrays.fill(visited, false);
+        Arrays.fill(articulationPoint, false);
+
+        // Call the recursive helper function to find articulation points
+        for (int i = 0; i < numNodes; i++) {
+            if (!visited[i]) {
+                dfsAP(adjList, i, visited, discovery, low, parent, articulationPoint);
+            }
+        }
+
+        // Print articulation points
+        System.out.println("Articulation Points:");
+        for (int i = 0; i < numNodes; i++) {
+            if (articulationPoint[i]) {
+                System.out.println(i);
+            }
+        }
+    }
+
+    // A recursive function that finds articulation points using DFS traversal
+    private void dfsAP(ArrayList<Integer>[] adjList, int u, boolean[] visited, int[] discovery, int[] low, int[] parent, boolean[] articulationPoint) {
+        int children = 0; // Count of children in DFS tree
+        visited[u] = true;
+
+        // Initialize discovery time and low value
+        discovery[u] = low[u] = ++time;
+
+        // Go through all vertices adjacent to this
+        for (Integer v : adjList[u]) {
+            // If v is not visited yet, then make it a child of u in DFS tree and recur for it
+            if (!visited[v]) {
+                children++;
+                parent[v] = u;
+                dfsAP(adjList, v, visited, discovery, low, parent, articulationPoint);
+
+                // Check if the subtree rooted at v has a connection back to one of the ancestors of u
+                low[u] = Math.min(low[u], low[v]);
+
+                // u is an articulation point in following cases:
+                // (1) u is root of DFS tree and has two or more children.
+                if (parent[u] == -1 && children > 1) {
+                    articulationPoint[u] = true;
+                }
+
+                // (2) u is not root and low value of one of its child is more than discovery value of u.
+                if (parent[u] != -1 && low[v] >= discovery[u]) {
+                    articulationPoint[u] = true;
+                }
+            }
+            // Update low value of u for parent function calls.
+            else if (v != parent[u]) {
+                low[u] = Math.min(low[u], discovery[v]);
+            }
+        }
+    }
+}
+
